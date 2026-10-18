@@ -27,7 +27,7 @@ jobs:
       - name: Download prebuilt Skia
         shell: bash
         run: |
-          skia_url=$(source ${{ github.workspace }}/laf/misc/skia-url.sh | xargs)
+          skia_url="https://github.com/aseprite/skia/releases/download/m124-08a5439a6b/Skia-Windows-Release-x64.zip"
           echo "Skia URL: $skia_url"
           curl --ssl-revoke-best-effort -L -o skia.zip "$skia_url"
           mkdir -p skia
