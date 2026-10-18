@@ -1,0 +1,54 @@
+name: Build Windows exe
+
+on:
+  push:
+    paths:
+      - '.github/workflows/build-windows-exe.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Compile aseprite.exe
+    runs-on: windows-latest
+    steps:
+      - name: Checkout source (with submodules)
+        uses: actions/checkout@v7
+        with:
+          submodules: 'recursive'
+
+      - name: Install Ninja
+        uses: aseprite/get-ninja@main
+
+      - name: Set up MSVC toolchain
+        uses: TheMrMilchmann/setup-msvc-dev@v4
+        with:
+          arch: x64
+
+      - name: Download prebuilt Skia
+        shell: bash
+        run: |
+          skia_url=$(source ${{ github.workspace }}/laf/misc/skia-url.sh | xargs)
+          echo "Skia URL: $skia_url"
+          curl --ssl-revoke-best-effort -L -o skia.zip "$skia_url"
+          mkdir -p skia
+          unzip -q skia.zip -d skia
+
+      - name: Configure (CMake + Ninja)
+        shell: bash
+        run: |
+          cmake -S . -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DLAF_BACKEND=skia \
+            -DSKIA_DIR=$(realpath skia) \
+            -DSKIA_LIBRARY_DIR=$(realpath skia/out/Release-x64)
+
+      - name: Compile aseprite
+        shell: bash
+        run: cmake --build build --target aseprite
+
+      - name: Upload aseprite.exe
+        uses: actions/upload-artifact@v4
+        with:
+          name: aseprite-windows-x64
+          path: build/bin/aseprite.exe
+          if-no-files-found: error
